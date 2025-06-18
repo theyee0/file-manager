@@ -26,15 +26,22 @@
   (.renameTo src dest))
 
 (defn copy
-  "Recursively copies files/folders to a destination folder. Makes all new folders."
+  "Recursively copies files/folders to a destination folder."
   [dest object]
-  (let [dest (add-to-path dest (.getName object))]
+  (let [dest]
     (if (.isDirectory object)
       (do
         (.mkdirs dest)
         (doseq [file (.listFiles object)]
-          (copy dest file)))
+          (copy (add-to-path dest (.getName object)) file)))
       (io/copy object dest))))
+
+(defn copy-into
+  "Recursively copies files/folders, but creates a subdirectory if destination exists already"
+  [dest object]
+  (if (.exists dest)
+    (copy (add-to-path dest (.getName object)) object)
+    (copy dest object)))
 
 (defn delete
   "Recursively deletes a file/folder"
