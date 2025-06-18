@@ -8,4 +8,6 @@
 
 (defn -main
   "I don't do a whole lot ... yet."
-  [& args])
+  [& args]
+  (copy (io/file "/home/personal/file") (io/file "/home/personal/Downloads"))
+  (move (io/file "/home/personal/newdo") (io/file "/home/personal/file")))

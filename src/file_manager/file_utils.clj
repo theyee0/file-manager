@@ -8,22 +8,39 @@
   [path-list]
   (map #(.getAbsolutePath %) path-list))
 
-(defn repeats
-  "Checks whether or not any files in a list are equivalent"
+(defn add-to-path
+  "Concatenates a file/folder (str) name to an existing path"
+  [dest addition]
+  (io/file (str (.getPath dest) "/" addition)))
+
+(defn repeats?
+  "Checks whether or not any filepaths in a list are equivalent"
   [path-list]
   (let [path-list (absolute-paths path-list)]
     (not= (count path-list) (count (set path-list)))))
 
 ; Useful user utilities
-(defn rename
-  "Renames a file or folder"
-  [src dest]
+(defn move 
+  "Moves/renames a file or folder"
+  [dest src]
   (.renameTo src dest))
 
-(defn copy-items
-  [dest files])
+(defn copy
+  "Recursively copies files/folders to a destination folder. Makes all new folders."
+  [dest object]
+  (let [dest (add-to-path dest (.getName object))]
+    (if (.isDirectory object)
+      (do
+        (.mkdirs dest)
+        (doseq [file (.listFiles object)]
+          (copy dest file)))
+      (io/copy object dest))))
 
-(defn equivalent-paths
-  [folder & args]
-  (or map #(.equals folder %) args))
-
+(defn delete
+  "Recursively deletes a file/folder"
+  [object]
+  (do
+    (if (.isDirectory object)
+      (doseq [file (.listFiles object)]
+        (delete file)))
+    (.delete object)))
