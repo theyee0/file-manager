@@ -1,6 +1,7 @@
 (ns file-manager.core
   (:gen-class)
   (:use file-manager.file-utils)
+  (:use file-manager.tags)
   (:import [javax.swing JFrame JLabel JButton]
            [java.awt.event WindowListener])
   (:require [clojure.java.io :as io])
@@ -9,5 +10,4 @@
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (copy (io/file "/home/personal/file") (io/file "/home/personal/Downloads"))
-  (move (io/file "/home/personal/newdo") (io/file "/home/personal/file")))
+  (initialize-db))

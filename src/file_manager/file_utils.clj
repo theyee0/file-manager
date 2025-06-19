@@ -28,13 +28,12 @@
 (defn copy
   "Recursively copies files/folders to a destination folder."
   [dest object]
-  (let [dest]
-    (if (.isDirectory object)
-      (do
-        (.mkdirs dest)
-        (doseq [file (.listFiles object)]
-          (copy (add-to-path dest (.getName object)) file)))
-      (io/copy object dest))))
+  (if (.isDirectory object)
+    (do
+      (.mkdirs dest)
+      (doseq [file (.listFiles object)]
+        (copy (add-to-path dest (.getName object)) file)))
+    (io/copy object dest)))
 
 (defn copy-into
   "Recursively copies files/folders, but creates a subdirectory if destination exists already"
