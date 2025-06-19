@@ -21,37 +21,49 @@
                                [[:imageid :int]
                                 [:tagid   :int]])]))
 
-(defn lookup-img-path
-  [id]
-  (jdbc/find-by-keys db :imagepath {:id id}))
+; Utilities for mapping integer ids to tags and images
+(defn id-lookup
+  "Finds an item in a given table with a certain id"
+  [table id]
+  (jdbc/get-by-id db table id :id))
 
 (defn get-img-id
+  "Given an image path, finds the corresponding image id"
   [img-path]
-  (jdbc/find-by-keys db :imagepath {:img img-path]))
-
-(defn lookup-tags
-  [id]
-  (jdbc/find-by-keys db :tags {:id id}))
+  (:id (jdbc/get-by-id db :imagepath img-path :img)))
 
 (defn get-tag-id
+  "Given a tag, finds the corresponding ID"
   [tag]
-  (jdbc/find-by-keys db :tags {:tag tag}))
+  (:id (jdbc/get-by-id db :tags tag :tag)))
 
+; Add items to tables
 (defn add-img
+  "Adds an image to the database if it is not yet present"
   [img-path]
-  (if (empty? (get-img-id img-path))
+  (if (nil? (get-img-id img-path))
     (insert! db :imagepath {:img img-path})))
 
 (defn add-tag
+  "Adds a tag to the database if it is not yet present"
   [tag]
-  (if (empty? (get-tag-id tag))
+  (if (nil? (get-tag-id tag))
     (insert! db :tags {:tag tag})))
 
 (defn append-tag
+  "Adds a tag to an image. If the tags and images are not yet in the database, they are added"
   [img-path tag]
   (do
     (add-img img-path)
     (add-tag tag)
-    (let [imgid (lookup-img-path img-path) ; Properly get actual id
-          tagid (lookup-tags tag)]
-      (insert! db {:imageid imgid :tagid tagid}))))
+    (let [imgid (get-img-id img-path)
+          tagid (get-tag-id tag)]
+      (insert! db :bridge {:imageid imgid :tagid tagid})))) ; TODO: Insert only if it's not already present
+
+(defn get-tags
+  "Lists all tags associated with a given image path"
+  [img-path]
+  (->> img-path
+       get-img-id
+       (find-by-keys db :bridge)
+       (map #(:tag (id-lookup :tags %)))))
