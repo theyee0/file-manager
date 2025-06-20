@@ -42,13 +42,13 @@
   "Adds an image to the database if it is not yet present"
   [img-path]
   (if (nil? (get-img-id img-path))
-    (insert! db :imagepath {:img img-path})))
+    (jdbc/insert! db :imagepath {:img img-path})))
 
 (defn add-tag
   "Adds a tag to the database if it is not yet present"
   [tag]
   (if (nil? (get-tag-id tag))
-    (insert! db :tags {:tag tag})))
+    (jdbc/insert! db :tags {:tag tag})))
 
 (defn append-tag
   "Adds a tag to an image. If the tags and images are not yet in the database, they are added"
@@ -58,12 +58,12 @@
     (add-tag tag)
     (let [imgid (get-img-id img-path)
           tagid (get-tag-id tag)]
-      (insert! db :bridge {:imageid imgid :tagid tagid})))) ; TODO: Insert only if it's not already present
+      (jdbc/insert! db :bridge {:imageid imgid :tagid tagid})))) ; TODO: Insert only if it's not already present
 
 (defn get-tags
   "Lists all tags associated with a given image path"
   [img-path]
-  (->> img-path
-       get-img-id
-       (find-by-keys db :bridge)
-       (map #(:tag (id-lookup :tags %)))))
+  (let [imgid (get-img-id img-path)]
+    (->> (jdbc/find-by-keys db :bridge {:imageid imgid})
+         (map :tagid)
+         (map #(:tag (id-lookup :tags %))))))
