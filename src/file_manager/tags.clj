@@ -13,13 +13,13 @@
   (run! #(jdbc/db-do-commands db %)
         [(jdbc/create-table-ddl :tags
                                 [[:id "integer not null primary key"]
-                                 [:tag "varchar(64)"]])
+                                 [:tag "varchar(64)"]] {:conditional? true})
         (jdbc/create-table-ddl :imagepath
                                [[:id  "integer not null primary key"]
-                                [:img :text]])
+                                [:img :text]] {:conditional? true})
         (jdbc/create-table-ddl :bridge
                                [[:imageid :int]
-                                [:tagid   :int]])]))
+                                [:tagid   :int]] {:conditional? true})]))
 
 ; Utilities for mapping integer ids to tags and images
 (defn id-lookup
@@ -50,6 +50,14 @@
   (if (nil? (get-tag-id tag))
     (jdbc/insert! db :tags {:tag tag})))
 
+(defn get-tags
+  "Lists all tags associated with a given image path"
+  [img-path]
+  (let [imgid (get-img-id img-path)]
+    (->> (jdbc/find-by-keys db :bridge {:imageid imgid})
+         (map :tagid)
+         (map #(:tag (id-lookup :tags %))))))
+
 (defn append-tag
   "Adds a tag to an image. If the tags and images are not yet in the database, they are added"
   [img-path tag]
@@ -58,12 +66,5 @@
     (add-tag tag)
     (let [imgid (get-img-id img-path)
           tagid (get-tag-id tag)]
-      (jdbc/insert! db :bridge {:imageid imgid :tagid tagid})))) ; TODO: Insert only if it's not already present
-
-(defn get-tags
-  "Lists all tags associated with a given image path"
-  [img-path]
-  (let [imgid (get-img-id img-path)]
-    (->> (jdbc/find-by-keys db :bridge {:imageid imgid})
-         (map :tagid)
-         (map #(:tag (id-lookup :tags %))))))
+      (if (empty? (filter #(= tag %) (get-tags img-path)))
+        (jdbc/insert! db :bridge {:imageid imgid :tagid tagid})))))
