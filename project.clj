@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.11.1"]
                  [org.clojure/java.jdbc "0.7.8"]
                  [org.xerial/sqlite-jdbc "3.23.1"]]
+  :aot [file-manager.filetree-model]
   :main ^:skip-aot file-manager.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all
