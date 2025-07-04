@@ -1,9 +1,13 @@
 (ns file-manager.interface
   (:gen-class)
+  (:import file-manager.filetree-model)
+  (:require [clojure.java.io :as io])
+  (:import java.io.File)
   (:import [java.awt
             Color GridBagLayout BorderLayout GridBagConstraints
-            Insets Dimension])
-  (:import [javax.swing JLabel JButton JPanel JFrame JTree JScrollPane]))
+            FlowLayout Insets Dimension])
+  (:import [javax.swing JLabel JButton JPanel JFrame JTree
+            JScrollPane JSplitPane]))
 
 
 ;; Simplifies the use of GridBagLayout
@@ -48,9 +52,9 @@
                         (next body)))))))))
 
 (def app-frame (JFrame. "File Manager"))
-(def current-folder (atom ""))
-(def selected-photo (atom ""))
-(def folder-root (atom ""))
+(def current-folder (atom (io/file "")))
+(def selected-photo (atom (io/file "")))
+(def root-folder (atom (io/file "")))
 
 
 ;; Creates App Panes:
@@ -72,52 +76,51 @@
 (defn tree-frame
   "Creates tree-style listing of files from root"
   []
-  (doto (JScrollPane. (doto (JTree.)
-                        (.setBackground Color/GREEN)
-                        (.setPreferredSize (Dimension. 300 300))))))
-    
+  (doto (JScrollPane.
+         (doto (JTree. (file-manager.filetree-model. @root-folder))
+           (.setBackground Color/GREEN)
+           (.setVisibleRowCount 10)))
+    (.setVerticalScrollBarPolicy JScrollPane/VERTICAL_SCROLLBAR_ALWAYS)))
 
 (defn file-explorer
   "Creates grid layount of files in currently open directory"
   []
   (doto (JScrollPane. (doto (JPanel.)
-                        (.setBackground Color/RED)
-                        (.setPreferredSize (Dimension. 300 300))))))
+                        (.setLayout (FlowLayout.))
+                        (.setBackground Color/RED)))))
 
 (defn info-pane
   "Displays info and metadata from the selected file"
   []
   (doto (JScrollPane. (doto (JPanel.)
-                        (.setBackground Color/BLUE)
-                        (.setPreferredSize (Dimension. 300 300))))))
+                        (.setLayout (BorderLayout.))
+                        (.setBackground Color/BLUE)))))
 
 (defn gps-pane
   "Creates pane with GPS Location"
   []
   (doto (JScrollPane. (doto (JPanel.)
-                        (.setBackground Color/ORANGE)
-                        (.setPreferredSize (Dimension. 300 300))))))
+                        (.setLayout (BorderLayout.))
+                        (.setBackground Color/ORANGE)))))
 
 (defn init-app
   "Initializes frame and creates panes corresponding to the user interface"
   []
-  (let [content-pane (doto (JPanel. (GridBagLayout.))
-                       (grid-bag-layout
-                           :fill :BOTH :weightx 1 :weighty 1
-                           :gridx 0 :gridy 0 :gridheight 2
-                           (tree-frame)
-                           :gridx 1 :gridy 0 :gridheight 2
-                           (file-explorer)
-                           :gridx 2 :gridy 0 :gridheight 1
-                           (info-pane)
-                           :gridx 2 :gridy 1 :gridheight 1
-                           (gps-pane))
-                       (.setSize 500 500))]
-    (doto app-frame
-      (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-      (.setLayout (BorderLayout.))
-      (.add content-pane)
-      (.setLocationRelativeTo nil)
-      (.pack)
-      (.setVisible true))))
-
+  (do
+    (reset! root-folder (io/file "/home/personal"))
+    (reset! current-folder @root-folder)
+    (let [content-pane
+          (doto (JSplitPane. JSplitPane/HORIZONTAL_SPLIT
+                             (JSplitPane. JSplitPane/HORIZONTAL_SPLIT
+                                          (tree-frame)
+                                          (file-explorer))
+                             (JSplitPane. JSplitPane/VERTICAL_SPLIT
+                                          (info-pane)
+                                          (gps-pane))))]
+      (doto app-frame
+;;        (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
+        (.setLayout (BorderLayout.))
+        (.add content-pane)
+        (.setLocationRelativeTo nil)
+        (.pack)
+        (.setVisible true)))))
