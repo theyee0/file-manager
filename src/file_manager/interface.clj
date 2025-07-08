@@ -1,6 +1,7 @@
 (ns file-manager.interface
   (:gen-class)
   (:import file-manager.filetree-model)
+  (:use [file-manager.tags :as tags])
   (:require [clojure.java.io :as io])
   (:import java.io.File)
   (:import [java.awt
@@ -13,7 +14,8 @@
 ;; Simplifies the use of GridBagLayout
 
 (defmacro set-grid!
-  "Given a constraint, change a parameter to a specified value"
+  "Given a GridbagConstraints variable, add a field that changes a parameter
+  to a specified value"
   [constraint field value]
   `(set! (. ~constraint ~(symbol (name field)))
          ~(if (keyword? value)
@@ -23,7 +25,10 @@
 
 
 (defmacro grid-bag-layout
-  "Given a GridBagLayout, add items in the body with specified parameters and objects:
+  "Given a GridBagLayout, GridBagConstraint parameters and Java Swing
+  objects, automatically generate a full GridBagConstraints variable and
+  generate the Java Swing objects in the new GridBagLayout:
+
   i.e.
   (grid-bag-layout
     GridBagLayout-Variable
@@ -51,11 +56,11 @@
                               result)
                         (next body)))))))))
 
-(def app-frame (JFrame. "File Manager"))
-(def current-folder (atom (io/file "")))
-(def selected-photo (atom (io/file "")))
-(def root-folder (atom (io/file "")))
-
+(def app-frame (JFrame. "File Manager"))  ; Main frame of app
+(def open-files (atom (list)))            ; List of currently displayed files
+(def selected-photo (atom (io/file "")))  ; File path to the image being observed currently
+(def current-folder (atom (io/file "")))  ; Path to the folder open in the file explorer
+(def root-folder (atom (io/file "")))     ; Path to the root folder being displayed in the tree
 
 ;; Creates App Panes:
 ;; +---+-------------+---+
@@ -66,14 +71,14 @@
 ;; |   |             |   |
 ;; +---+-------------+---+
 ;;
-;; A - Tree Frame (Shows tree listing of files/directories, starting from a specified root)
+;; A - Tree Pane (Shows tree listing of files/directories, starting from a specified root)
 ;; B - File Explorer (Shows Windows-Explorer style listing of files/folders in grid)
 ;; C - Info Pane (Shows details of the selected file, i.e. EXIF data)
 ;; D - GPS Pane (Shows GPS info of current file and map of its location)
 
 ;; TODO: Link panes to functions and begin populating them
 
-(defn tree-frame
+(defn tree-pane
   "Creates tree-style listing of files from root"
   []
   (doto (JScrollPane.
@@ -85,40 +90,44 @@
 (defn file-explorer
   "Creates grid layount of files in currently open directory"
   []
-  (doto (JScrollPane. (doto (JPanel.)
-                        (.setLayout (FlowLayout.))
-                        (.setBackground Color/RED)))))
+  (doto (JScrollPane.
+         (doto (JPanel.)
+           (.setLayout (FlowLayout.))
+           (.setBackground Color/RED)))))
 
 (defn info-pane
   "Displays info and metadata from the selected file"
   []
-  (doto (JScrollPane. (doto (JPanel.)
-                        (.setLayout (BorderLayout.))
-                        (.setBackground Color/BLUE)))))
+  (doto (JScrollPane.
+         (doto (JPanel.)
+           (.setLayout (BorderLayout.))
+           (.setBackground Color/BLUE)))))
 
 (defn gps-pane
   "Creates pane with GPS Location"
   []
-  (doto (JScrollPane. (doto (JPanel.)
-                        (.setLayout (BorderLayout.))
-                        (.setBackground Color/ORANGE)))))
+  (doto (JScrollPane.
+         (doto (JPanel.)
+           (.setLayout (BorderLayout.))
+           (.setBackground Color/ORANGE)))))
 
 (defn init-app
   "Initializes frame and creates panes corresponding to the user interface"
   []
   (do
+    (tags/initialize-db)
     (reset! root-folder (io/file "/home/personal"))
     (reset! current-folder @root-folder)
     (let [content-pane
           (doto (JSplitPane. JSplitPane/HORIZONTAL_SPLIT
                              (JSplitPane. JSplitPane/HORIZONTAL_SPLIT
-                                          (tree-frame)
+                                          (tree-pane)
                                           (file-explorer))
                              (JSplitPane. JSplitPane/VERTICAL_SPLIT
                                           (info-pane)
                                           (gps-pane))))]
       (doto app-frame
-;;        (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
+        (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
         (.setLayout (BorderLayout.))
         (.add content-pane)
         (.setLocationRelativeTo nil)
