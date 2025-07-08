@@ -8,16 +8,16 @@
   [path-list]
   (map #(.getAbsolutePath %) path-list))
 
-(defn add-to-path
-  "Concatenates a file/folder (str) name to an existing path"
-  [dest addition]
-  (io/file (str (.getPath dest) "/" addition)))
-
 (defn repeats?
   "Checks whether or not any filepaths in a list are equivalent"
   [path-list]
   (let [path-list (absolute-paths path-list)]
     (not= (count path-list) (count (set path-list)))))
+
+(defn add-to-path
+  "Concatenates a file/folder (str) name to an existing path"
+  [dest addition]
+  (io/file (str (.getPath dest) "/" addition)))
 
 ; Useful user utilities
 (defn move 
@@ -27,20 +27,20 @@
 
 (defn copy
   "Recursively copies files/folders to a destination folder."
-  [dest object]
-  (if (.isDirectory object)
+  [dest src]
+  (if (.isDirectory src)
     (do
       (.mkdirs dest)
-      (doseq [file (.listFiles object)]
-        (copy (add-to-path dest (.getName object)) file)))
-    (io/copy object dest)))
+      (doseq [file (.listFiles src)]
+        (copy (add-to-path dest (.getName src)) file)))
+    (io/copy src dest)))
 
 (defn copy-into
   "Recursively copies files/folders, but creates a subdirectory if destination exists already"
-  [dest object]
+  [dest src]
   (if (.exists dest)
-    (copy (add-to-path dest (.getName object)) object)
-    (copy dest object)))
+    (copy (add-to-path dest (.getName src)) src)
+    (copy dest src)))
 
 (defn delete
   "Recursively deletes a file/folder"
