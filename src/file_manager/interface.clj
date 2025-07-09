@@ -8,8 +8,11 @@
             Color GridBagLayout BorderLayout GridBagConstraints
             FlowLayout Insets Dimension])
   (:import [javax.swing JLabel JButton JPanel JFrame JTree
-            JScrollPane JSplitPane]))
-
+            JScrollPane JSplitPane])
+  (:import [org.jxmapviewer
+            JXMapViewer OSMTileFactoryInfo])
+  (:import [org.jxmapviewer.viewer
+            GeoPosition TileFactoryInfo DefaultTileFactory]))
 
 ;; Simplifies the use of GridBagLayout
 
@@ -61,6 +64,7 @@
 (def selected-photo (atom (io/file "")))  ; File path to the image being observed currently
 (def current-folder (atom (io/file "")))  ; Path to the folder open in the file explorer
 (def root-folder (atom (io/file "")))     ; Path to the root folder being displayed in the tree
+(def map-viewer (JXMapViewer.))
 
 ;; Creates App Panes:
 ;; +---+-------------+---+
@@ -106,10 +110,16 @@
 (defn gps-pane
   "Creates pane with GPS Location"
   []
-  (doto (JScrollPane.
-         (doto (JPanel.)
-           (.setLayout (BorderLayout.))
-           (.setBackground Color/ORANGE)))))
+  (do
+    (doto map-viewer
+      (.setTileFactory (DefaultTileFactory. (OSMTileFactoryInfo.)))
+      (.setZoom 6)
+      (.setAddressLocation (GeoPosition. 50 9)))
+    (doto (JScrollPane.
+           (doto (JPanel.)
+             (.setLayout (BorderLayout.))
+             (.add map-viewer))))))
+
 
 (defn init-app
   "Initializes frame and creates panes corresponding to the user interface"
@@ -120,16 +130,23 @@
     (reset! current-folder @root-folder)
     (let [content-pane
           (doto (JSplitPane. JSplitPane/HORIZONTAL_SPLIT
-                             (JSplitPane. JSplitPane/HORIZONTAL_SPLIT
-                                          (tree-pane)
-                                          (file-explorer))
-                             (JSplitPane. JSplitPane/VERTICAL_SPLIT
-                                          (info-pane)
-                                          (gps-pane))))]
+                             (doto (JSplitPane. JSplitPane/HORIZONTAL_SPLIT
+                                                (tree-pane)
+                                                (file-explorer))
+                               (.setResizeWeight 0.2))
+                             (doto (JSplitPane. JSplitPane/VERTICAL_SPLIT
+                                                (info-pane)
+                                                (gps-pane))
+                               (.setResizeWeight 0.7)))
+            (.setResizeWeight 0.7))
+          menu-bar
+          (doto (JPanel.)
+            (.setPreferredSize (Dimension. 100 50)))]
       (doto app-frame
-        (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
+;;        (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
         (.setLayout (BorderLayout.))
-        (.add content-pane)
+        (.add menu-bar BorderLayout/NORTH)
+        (.add content-pane BorderLayout/CENTER)
         (.setLocationRelativeTo nil)
         (.pack)
         (.setVisible true)))))
