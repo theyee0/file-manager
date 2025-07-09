@@ -21,7 +21,7 @@
                                [[:imageid :int]
                                 [:tagid   :int]] {:conditional? true})
          (jdbc/create-table-ddl :favorites
-                                [[:id "integer not null primary key"]])]))
+                                [[:id "integer not null primary key"]] {:conditional? true})]))
 
 ; Utilities for mapping integer ids to tags and images
 (defn id-lookup
