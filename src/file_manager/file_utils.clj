@@ -14,11 +14,6 @@
   (let [path-list (absolute-paths path-list)]
     (not= (count path-list) (count (set path-list)))))
 
-(defn add-to-path
-  "Concatenates a file/folder (str) name to an existing path"
-  [dest addition]
-  (io/file (str (.getPath dest) "/" addition)))
-
 ; Useful user utilities
 (defn move 
   "Moves/renames a file or folder"
@@ -32,14 +27,14 @@
     (do
       (.mkdirs dest)
       (doseq [file (.listFiles src)]
-        (copy (add-to-path dest (.getName src)) file)))
+        (copy (io/file dest (.getName file)) file)))
     (io/copy src dest)))
 
 (defn copy-into
   "Recursively copies files/folders, but creates a subdirectory if destination exists already"
   [dest src]
   (if (.exists dest)
-    (copy (add-to-path dest (.getName src)) src)
+    (copy (io/file dest (.getName src)) src)
     (copy dest src)))
 
 (defn delete
