@@ -1,17 +1,28 @@
 (ns file-manager.interface
   (:gen-class)
-  (:import file-manager.filetree-model)
-  (:use [file-manager.tags :as tags])
+  (:use [file-manager.tags :as tags]
+        [file-manager.metadata :as metadata])
   (:require [clojure.java.io :as io])
-  (:import java.io.File)
-  (:import [java.awt
+  (:import file-manager.filetree-model
+           java.io.File
+           [java.util
+            Vector]
+           [java.awt
             Color GridBagLayout BorderLayout GridBagConstraints
-            FlowLayout Insets Dimension])
-  (:import [javax.swing JLabel JButton JPanel JFrame JTree
-            JScrollPane JSplitPane])
-  (:import [org.jxmapviewer
-            JXMapViewer OSMTileFactoryInfo])
-  (:import [org.jxmapviewer.viewer
+            GridLayout Insets Dimension FlowLayout]
+           [javax.swing
+            JLabel JButton JPanel JFrame JTree
+            JScrollPane JSplitPane JTable]
+           [javax.swing.table
+            DefaultTableModel]
+           [javax.imageio
+            ImageIO]
+           [org.jxmapviewer
+            JXMapViewer OSMTileFactoryInfo]
+           [org.jxmapviewer.input
+            CenterMapListener PanKeyListener PanMouseInputListener
+            ZoomMouseWheelListenerCursor]
+           [org.jxmapviewer.viewer
             GeoPosition TileFactoryInfo DefaultTileFactory]))
 
 ;; Simplifies the use of GridBagLayout
@@ -25,7 +36,6 @@
             `(. java.awt.GridBagConstraints
                 ~(symbol (name value)))
             value)))
-
 
 (defmacro grid-bag-layout
   "Given a GridBagLayout, GridBagConstraint parameters and Java Swing
@@ -60,11 +70,12 @@
                         (next body)))))))))
 
 (def app-frame (JFrame. "File Manager"))  ; Main frame of app
-(def open-files (atom (list)))            ; List of currently displayed files
+(def explorers (atom (vector)))            ; List of currently displayed file JPanels
 (def selected-photo (atom (io/file "")))  ; File path to the image being observed currently
-(def current-folder (atom (io/file "")))  ; Path to the folder open in the file explorer
+(def info (atom {:pane (JPanel.) :image-file (io/file "")}))
 (def root-folder (atom (io/file "")))     ; Path to the root folder being displayed in the tree
 (def map-viewer (JXMapViewer.))
+
 
 ;; Creates App Panes:
 ;; +---+-------------+---+
@@ -87,52 +98,87 @@
   []
   (doto (JScrollPane.
          (doto (JTree. (file-manager.filetree-model. @root-folder))
-           (.setBackground Color/GREEN)
            (.setVisibleRowCount 10)))
     (.setVerticalScrollBarPolicy JScrollPane/VERTICAL_SCROLLBAR_ALWAYS)))
 
+(defn make-file
+  "Creates a JPanel representing the icon/description of a file"
+  [file]
+  (doto (JPanel.)
+    (.add (JLabel. (.getName file)))
+    (.setBackground Color/GREEN)
+    (.setPreferredSize (Dimension. 50 50))))
+
+(defn open-folder
+  "Reloads files present in file explorer based on the current directory"
+  [n]
+  (let [explorer (get @explorers n)]
+    (run! #(.remove (:pane explorer) %) (:items explorer))
+    (swap! explorers assoc-in [n :items]
+           (->> (:folder explorer)
+                .listFiles
+                (filter #(or (:dotfiles (:flags explorer))
+                             (not= (first (.getName %)) \.))) ; Filters dotfiles if disabled
+                (mapv make-file)))
+    (run! #(.add (:pane explorer) %) (:items (get @explorers n)))))
+
 (defn file-explorer
-  "Creates grid layount of files in currently open directory"
-  []
-  (doto (JScrollPane.
-         (doto (JPanel.)
-           (.setLayout (FlowLayout.))
-           (.setBackground Color/RED)))))
+  "Creates grid layout of files in currently open directory"
+  [folder]
+  (do
+    (swap! explorers
+           conj {:pane (JPanel. (GridLayout. 0 5 2 2))
+                 :folder folder
+                 :items (vector)
+                 :flags {:dotfiles false}})
+    (JScrollPane. (:pane (peek @explorers)))))
+
+(defn select-image
+  [file-path]
+  (let [table-model (proxy [DefaultTableModel] [0 2] (isCellEditable [row col] false))]
+    (run! #(.addRow table-model (Vector. %))
+          (metadata/exif-info file-path))
+    (doto (:pane @info)
+      (.setLayout (BorderLayout.))
+      .removeAll
+      (.add (JTable. table-model))
+      .revalidate)
+    (swap! info assoc-in [:image-file] file-path)))
 
 (defn info-pane
   "Displays info and metadata from the selected file"
   []
-  (doto (JScrollPane.
-         (doto (JPanel.)
-           (.setLayout (BorderLayout.))
-           (.setBackground Color/BLUE)))))
+  (doto (JScrollPane. (:pane @info))))
 
 (defn gps-pane
   "Creates pane with GPS Location"
   []
-  (do
+  (let [default-location (GeoPosition. 50 9)
+        mouse-input-listener (PanMouseInputListener. map-viewer)]
     (doto map-viewer
       (.setTileFactory (DefaultTileFactory. (OSMTileFactoryInfo.)))
       (.setZoom 6)
-      (.setAddressLocation (GeoPosition. 50 9)))
+      (.setAddressLocation default-location)
+      (.addMouseListener mouse-input-listener)
+      (.addMouseMotionListener mouse-input-listener)
+      (.addMouseListener (CenterMapListener. map-viewer))
+      (.addMouseWheelListener (ZoomMouseWheelListenerCursor. map-viewer))
+      (.addKeyListener (PanKeyListener. map-viewer)))
     (doto (JScrollPane.
            (doto (JPanel.)
              (.setLayout (BorderLayout.))
              (.add map-viewer))))))
 
-
 (defn init-app
   "Initializes frame and creates panes corresponding to the user interface"
   []
   (do
-    (tags/initialize-db)
-    (reset! root-folder (io/file "/home/personal"))
-    (reset! current-folder @root-folder)
+    (reset! root-folder (io/file "/home/jimc"))
     (let [content-pane
           (doto (JSplitPane. JSplitPane/HORIZONTAL_SPLIT
                              (doto (JSplitPane. JSplitPane/HORIZONTAL_SPLIT
                                                 (tree-pane)
-                                                (file-explorer))
+                                                (file-explorer @root-folder))
                                (.setResizeWeight 0.2))
                              (doto (JSplitPane. JSplitPane/VERTICAL_SPLIT
                                                 (info-pane)
@@ -149,4 +195,7 @@
         (.add content-pane BorderLayout/CENTER)
         (.setLocationRelativeTo nil)
         (.pack)
-        (.setVisible true)))))
+        (.setVisible true))))
+  (swap! explorers assoc-in [0 :folder] (io/file "/home/jimc"))
+  (open-folder 0)
+  (select-image (io/file "/home/jimc/Pictures/CRW_0040.jpg")))
