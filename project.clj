@@ -7,7 +7,8 @@
                  [org.clojure/java.jdbc "0.7.8"]
                  [org.xerial/sqlite-jdbc "3.23.1"]
                  [com.drewnoakes/metadata-extractor "2.19.0"]
-                 [org.jxmapviewer/jxmapviewer2 "2.8"]]
+                 [org.jxmapviewer/jxmapviewer2 "2.8"]
+                 [com.formdev/flatlaf "3.6"]]
   :aot [file-manager.filetree-model]
   :main ^:skip-aot file-manager.core
   :target-path "target/%s"
