@@ -12,7 +12,7 @@
             GridLayout Insets Dimension FlowLayout]
            [javax.swing
             JLabel JButton JPanel JFrame JTree
-            JScrollPane JSplitPane JTable]
+            JScrollPane JSplitPane JTable JFileChooser]
            [javax.swing.table
             DefaultTableModel]
            [javax.imageio
@@ -105,7 +105,8 @@
   "Creates a JPanel representing the icon/description of a file"
   [file]
   (doto (JPanel.)
-    (.add (JLabel. (.getName file)))
+    (.setLayout (BorderLayout.))
+    (.add (JLabel. (.getName file)) BorderLayout/SOUTH)
     (.setBackground Color/GREEN)
     (.setPreferredSize (Dimension. 50 50))))
 
@@ -153,7 +154,7 @@
 (defn gps-pane
   "Creates pane with GPS Location"
   []
-  (let [default-location (GeoPosition. 50 9)
+  (let [default-location (GeoPosition. 49.246292 -123.116226)
         mouse-input-listener (PanMouseInputListener. map-viewer)]
     (doto map-viewer
       (.setTileFactory (DefaultTileFactory. (OSMTileFactoryInfo.)))
@@ -173,7 +174,10 @@
   "Initializes frame and creates panes corresponding to the user interface"
   []
   (do
-    (reset! root-folder (io/file "/home/jimc"))
+    (let [file-chooser (doto (JFileChooser.)
+                          (.setFileSelectionMode JFileChooser/DIRECTORIES_ONLY)
+                          (.showOpenDialog app-frame))]
+      (reset! root-folder (.getSelectedFile file-chooser)))
     (let [content-pane
           (doto (JSplitPane. JSplitPane/HORIZONTAL_SPLIT
                              (doto (JSplitPane. JSplitPane/HORIZONTAL_SPLIT
@@ -196,6 +200,6 @@
         (.setLocationRelativeTo nil)
         (.pack)
         (.setVisible true))))
-  (swap! explorers assoc-in [0 :folder] (io/file "/home/jimc"))
+  (swap! explorers assoc-in [0 :folder] @root-folder)
   (open-folder 0)
   (select-image (io/file "/home/jimc/Pictures/CRW_0040.jpg")))

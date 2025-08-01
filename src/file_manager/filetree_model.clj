@@ -28,7 +28,6 @@
          count)
     0))
 
-
 (defn -getIndexOfChild
   [this parent child]
   (.indexOf (into (list) (.listFiles parent)) child))
