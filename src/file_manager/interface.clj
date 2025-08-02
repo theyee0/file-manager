@@ -10,6 +10,8 @@
            [java.awt
             Color GridBagLayout BorderLayout GridBagConstraints
             GridLayout Insets Dimension FlowLayout]
+           [java.awt.event
+            MouseAdapter]
            [javax.swing
             JLabel JButton JPanel JFrame JTree
             JScrollPane JSplitPane JTable JFileChooser]
@@ -23,7 +25,8 @@
             CenterMapListener PanKeyListener PanMouseInputListener
             ZoomMouseWheelListenerCursor]
            [org.jxmapviewer.viewer
-            GeoPosition TileFactoryInfo DefaultTileFactory]))
+            GeoPosition TileFactoryInfo DefaultTileFactory]
+           WrapLayout))
 
 ;; Simplifies the use of GridBagLayout
 
@@ -103,12 +106,18 @@
 
 (defn make-file
   "Creates a JPanel representing the icon/description of a file"
-  [file]
-  (doto (JPanel.)
-    (.setLayout (BorderLayout.))
-    (.add (JLabel. (.getName file)) BorderLayout/SOUTH)
-    (.setBackground Color/GREEN)
-    (.setPreferredSize (Dimension. 50 50))))
+  [n file]
+  (let [panel (doto (JPanel.)
+                (.setLayout (BorderLayout.))
+                (.add (JLabel. (.getName file)) BorderLayout/SOUTH)
+                (.setBackground Color/GREEN)
+                (.setPreferredSize (Dimension. 150 150))
+                (.addMouseListener
+                 (proxy [MouseAdapter] []
+                   (mouseClicked [e] (do
+                                       (swap! explorers assoc-in [n :folder] file)
+                                       (open-folder n))))))]
+    panel))
 
 (defn open-folder
   "Reloads files present in file explorer based on the current directory"
@@ -120,15 +129,16 @@
                 .listFiles
                 (filter #(or (:dotfiles (:flags explorer))
                              (not= (first (.getName %)) \.))) ; Filters dotfiles if disabled
-                (mapv make-file)))
-    (run! #(.add (:pane explorer) %) (:items (get @explorers n)))))
+                (mapv #(make-file n %))))
+    (run! #(.add (:pane explorer) %) (:items (get @explorers n)))
+    (.revalidate (:pane explorer))))
 
 (defn file-explorer
   "Creates grid layout of files in currently open directory"
   [folder]
   (do
     (swap! explorers
-           conj {:pane (JPanel. (GridLayout. 0 5 2 2))
+           conj {:pane (JPanel. (WrapLayout. WrapLayout/LEFT))
                  :folder folder
                  :items (vector)
                  :flags {:dotfiles false}})

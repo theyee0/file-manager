@@ -9,6 +9,7 @@
                  [com.drewnoakes/metadata-extractor "2.19.0"]
                  [org.jxmapviewer/jxmapviewer2 "2.8"]
                  [com.formdev/flatlaf "3.6"]]
+  :java-source-paths ["java"]
   :aot [file-manager.filetree-model]
   :main ^:skip-aot file-manager.core
   :target-path "target/%s"
