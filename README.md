@@ -6,42 +6,41 @@ Uses the Swing toolkit for graphical client.
 
 ## Installation
 
-Clone the repo and build the project
+First, clone the repo. Then to run the program, you can use one of the following commands:
+
+#### Compiling
+```
+$ lein uberjar
+```
+
+Alternatively to the above command, the jar file can be downloaded from the "Releases" section.
 
 ## Usage
 
-FIXME: explanation
+#### Running from command line
+```
+$ lein run
+```
 
-    $ java -jar file-manager-0.1.0-standalone.jar [args]
+#### Running .jar file
 
-## Options
+To run a compiled .jar file, use the following command:
 
-FIXME: listing of options this app accepts.
+```
+$ java -jar file-manager-0.0.1-standalone.jar
+```
 
-## Examples
-
-...
-
-### Bugs
-
-...
+If you compile the program, this will be stored in target/uberjar.
 
 ## Timeline
 
-- [ ] Implement file backend/interface with basic manipulation functionality
+- [x] Implement file backend/interface with basic manipulation functionality
 - [ ] Implement databases for tagged images/sorts
-- [ ] Implement basic image viewing using java.swing toolkit
-- [ ] Implement advanced graphical interface to match cli options
-- [ ] Implement geolocation
+- [x] Implement basic image viewing using java.swing toolkit
+- [x] Implement geolocation
 - [ ] Implement OpenCV face/image identification and automated tagging
 
-### Any Other Sections
-### That You Think
-### Might be Useful
-
 ## License
-
-Copyright © 2025 FIXME
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
