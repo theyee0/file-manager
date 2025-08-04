@@ -12,6 +12,5 @@
 
 (defn -main
   [& args]
-  (initialize-db)
   (. FlatLightLaf setup)
   (init-app))
