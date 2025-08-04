@@ -11,7 +11,6 @@
   (:require clojure.pprint))
 
 (defn -main
-  "I don't do a whole lot ... yet."
   [& args]
   (initialize-db)
   (. FlatLightLaf setup)

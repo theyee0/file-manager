@@ -2,11 +2,14 @@
   (:gen-class)
   (:use file-manager.filetree-model)
   (:import [com.drew
-            imaging.ImageMetadataReader]))
+            imaging.ImageMetadataReader
+            metadata.exif.GpsDirectory]))
 
 (defn gps-data
   [filepath]
-  (. ImageMetadataReader readMetadata filepath))
+  (let [metadata (. ImageMetadataReader readMetadata filepath)]
+    (first (filter #(and (not (nil? %)) (not (.isZero %)))
+            (mapv #(.getGeoLocation %) (.getDirectoriesOfType metadata GpsDirectory))))))
 
 (defn exif-info
   [filepath]
